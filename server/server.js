@@ -56,8 +56,6 @@ function broadcastUsers() {
     server.broadcast('list', {users:users});
 }
 
-
-
 /**
  * Broadcast game progress
  */
@@ -259,7 +257,8 @@ function broadcastStop(user){
  */
 function broadcastPause(seconds){
     server.broadcast('pause', {
-        time: seconds
+        time: seconds,
+        users: users,
     });
 }
 
