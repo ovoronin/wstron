@@ -1,0 +1,22 @@
+.field {
+    float: left;
+    margin-right: 8px;
+}
+
+.field canvas {
+    border: 1px solid black;
+}
+
+.status {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 200px;
+    overflow: scroll;
+    border-top: 1px solid black;
+}
+
+.users ul {
+    list-style: none;
+}
