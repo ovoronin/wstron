@@ -4,4 +4,4 @@
 
 2. To run the server execute `grunt`. It will watch your changes
 
-3. To run the client open index.html in your browser window
+3. To run the client open `index.html` in your browser window
