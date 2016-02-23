@@ -3,9 +3,11 @@ var WebSocketServer = require('ws').Server;
 var WebSocket = require('ws');
 var server = new WebSocketServer({ port: 8888 });
 
+var colors = ['#ff06b0', '#8002f9', '#fcac00', '#00b5ff', '#ffffff', '#00ff00', '#ff0000', '#fcfb00'];
 var users = [];
-var width = 800;
-var height = 600;
+var lineWidth = 4;
+var width = 800 / lineWidth;
+var height = 600 / lineWidth;
 var field;
 var ingame = false;
 var timer;
@@ -70,17 +72,21 @@ function broadcastProgress() {
  * Place users randomly and set their colors
  */
 function placeUsers() {
+    var pickedColors = [];
     _.each(users, function(user){
         do {
-            var x = rnd(width-200) + 100;
-            var y = rnd(height-200) + 100;
+            var x = rnd(width-parseInt(width/4)) + width/8;
+            var y = rnd(height-parseInt(height/4)) + height/8;
+
             var found = _.findIndex(users, function(u) {
                 return (u.name != user.name) && distance(x, y, u.x, u.y) < 900;
             })
         } while (found >= 0);
         user.x = x;
         user.y = y;
-        user.color = rainbow(50, rnd(50));
+        // user.color = rainbow(50, rnd(50));
+        user.color = paletteColor(pickedColors);
+        pickedColors.push(user.color);
         user.direction = rnd(4);
         user.lost = false;
     });
@@ -142,7 +148,7 @@ function moveUser(user) {
     var deltaY = [0, 1, 0 , -1];
     user.x += deltaX[user.direction];
     user.y += deltaY[user.direction];
-    if (getField(user.x, user.y) || user.x < 0 || user.x > width || user.y < 0 || user.y > height) {
+    if (getField(user.x, user.y) || user.x < 0 || user.x >= width || user.y < 0 || user.y >= height) {
         user.lost = true;
     } else {
         setField(user.x, user.y, 1);
@@ -179,7 +185,7 @@ function start(){
 
     setTimeout(function(){
         timer = setInterval(game, 50);
-    }, 10000)
+    }, 4000)
 }
 
 /**
@@ -226,7 +232,7 @@ function stop(user){
             if (users.length >= 2) {
                 start();
             }
-        }, 10000)
+        }, 4000)
 
     }
 }
@@ -357,6 +363,15 @@ function rainbow(numOfSteps, step) {
     return (c);
 }
 
+/**
+ * Get random color from static palette, excluding picked colors
+ * * @param array picked
+*/
+
+function paletteColor(picked) {
+    return _.sample(_.difference(colors, picked));
+};
+
 /* ================================== server =================================== */
 
 // Handle incoming connections
@@ -425,5 +440,11 @@ server.on('connection', function connection(ws) {
 
     ws.success('connect', {
         message: "Connected",
+        gameConfig: {
+            width: width * lineWidth,
+            height: height * lineWidth,
+            size: lineWidth,
+            maxPlayers: colors.length
+        }
     });
 });
