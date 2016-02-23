@@ -7,9 +7,14 @@ var canvas;
 var context;
 var lineCanvas;
 var lineContext;
-var width = 800;
-var height = 600;
+
 var prevUsers = [];
+var KEYS = {
+    LEFT: [37, 55, 103],
+    RIGHT: [39, 56, 104]
+}
+
+var gameConfig;
 
 /**
  * Show status message
@@ -68,8 +73,18 @@ socket.onclose = function(event) {
  * @param object message
  */
 function process(message) {
+
     var handlers = {
+        connect: function(success, data){
+            if(success){
+                gameConfig = data.gameConfig;
+                initCanvases();
+            } else {
+                status(data.message);
+            }
+        },
         login: function(success, data){
+
             if (success) {
                 state.connected = true;
                 $('.disconnect').show();
@@ -90,12 +105,18 @@ function process(message) {
         },
         list: function(success, data){
             if (success) {
-                var html = "";
+                var html = "", isFull = data.users.length >= gameConfig.maxPlayers;
                 $.each(data.users, function(ignore, user){
                     console.log(user);
                     html += '<li>' + user.name + '</li>'
                 });
                 $('.users ul').html(html);
+                
+                if (!state.connected) {
+                    $('.full').toggle(isFull);
+                    $('.connect').toggle(!isFull);
+                }                
+                
             } else {
                 console.log('error getting userlist');
             }
@@ -174,7 +195,7 @@ window.onbeforeunload = function(){
  */
 function drawPoint(x, y, color) {
     lineContext.fillStyle = color;
-    lineContext.fillRect(x, y, 1, 1);
+    lineContext.fillRect(x, y, gameConfig.size, gameConfig.size);
 }
 
 /**
@@ -183,7 +204,7 @@ function drawPoint(x, y, color) {
  * @param object user
  */
 function drawUserBody(user) {
-    drawPoint(user.x, user.y, user.color);
+    drawPoint(user.x * gameConfig.size, user.y * gameConfig.size, user.color);
 }
 
 /**
@@ -192,7 +213,8 @@ function drawUserBody(user) {
  * @param object user
  */
 function drawUserName(user) {
-    context.fillText(user.name, Math.min(Math.max(user.x - 10, 0), width - 10), Math.min(Math.max(user.y - 12, 0), height - 12));
+    context.fillText(user.name, Math.min(Math.max(user.x * gameConfig.size - 10, 0), gameConfig.width - 10), 
+                                Math.min(Math.max(user.y * gameConfig.size - 12, 0), gameConfig.height - 12));
 }
 
 /**
@@ -238,7 +260,7 @@ function draw(users) {
  * @param name - username
  */
 function win(name) {
-    context.fillText(name + " wins!", width / 2, height / 2);
+    context.fillText(name + " wins!", gameConfig.width / 2, gameConfig.height / 2);
 }
 
 /**
@@ -246,21 +268,39 @@ function win(name) {
  * @param int time
  */
 function drawTime(time) {
-    context.fillText(time - 1 +'', width / 2, height / 2);
+    context.fillText(time - 1 +'', gameConfig.width / 2, gameConfig.height / 2);
 }
 
 /**
  * Clear canvases
  */
 function clearField() {
-    context.fillStyle = "blue";
-    lineContext.fillStyle = "blue";
+    context.fillStyle = "#000";
+    lineContext.fillStyle = "#000";
     context.globalCompositeOperation = "source-over";
     context.fillRect(0, 0, canvas.width, canvas.height);
     lineContext.fillRect(0, 0, canvas.width, canvas.height);
 
     prevUsers = false;
 }
+
+/**
+ * Init canvases
+ */
+function initCanvases(){
+
+    canvas = $('canvas')[0];
+    context = canvas.getContext("2d");
+    context.font = "normal 14px Arial";
+
+    lineCanvas = document.createElement('canvas');
+    lineCanvas.width = gameConfig.width;
+    lineCanvas.height = gameConfig.height;
+    lineContext = lineCanvas.getContext('2d');
+
+    clearField();
+}
+
 
 $(function(){
     
@@ -284,23 +324,14 @@ $(function(){
             return
         };
         
-        if (event.keyCode == 55 || event.keyCode == 103) {
+        if (KEYS.LEFT.indexOf(event.keyCode) !== -1) {
             socket.command('turn', { user: $(this).find('input[name=user]').val(), direction: 'left' });
-        } else if (event.keyCode == 56 || event.keyCode == 104) {
+        } else if (KEYS.RIGHT.indexOf(event.keyCode) !== -1) {
             socket.command('turn', { user: $(this).find('input[name=user]').val(), direction: 'right' });
         }  
     })
     
-    canvas = $('canvas')[0];
-    context = canvas.getContext("2d");
-    context.font = "10px";
     
-    lineCanvas = document.createElement('canvas');
-    lineCanvas.width = width;
-    lineCanvas.height = height;
-    lineContext = lineCanvas.getContext('2d');
-    
-    clearField();
 });
 
 /* @TODO
